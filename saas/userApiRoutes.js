@@ -12,6 +12,7 @@ const { requireAdmin } = require("./adminAuth");
 const usageRegistry = require("./usageRegistry");
 const tokenRegistry = require("./tokenRegistry");
 const paymentAccess = require("./paymentAccess");
+const maintenanceMode = require("./maintenanceMode");
 const { PLANS, createPaystackService } = require("./paystackPayments");
 
 // Display-only estimates. Paystack still charges the fixed KES plan amount.
@@ -28,6 +29,11 @@ const DISPLAY_CURRENCIES = Object.freeze({
 const router = express.Router();
 router.use(express.json());
 const paystackPayments = createPaystackService({ tokenRegistry });
+function rejectDuringMaintenance(res) {
+    if (!maintenanceMode.isEnabled()) return false;
+    res.status(503).json({ error: maintenanceMode.message, code: "MAINTENANCE_MODE" });
+    return true;
+}
 router.post("/hub-sync", async (req, res) => {
     if (!matchesSecret(req.get("X-Firebox-Sync-Key"), process.env.FIREBOX_PANEL_SYNC_SECRET)) return res.status(401).json({ error: "Invalid panel sync key." });
     try {
@@ -37,7 +43,8 @@ router.post("/hub-sync", async (req, res) => {
 });
 // Public payment configuration is safe to expose; credentials remain server-only.
 router.get("/payment-config", (_req, res) => res.json({
-    enabled: String(process.env.PAYSTACK_ENABLED || "false").toLowerCase() === "true" && !!process.env.PAYSTACK_SECRET_KEY && !paymentAccess.isFreePairing(),
+    enabled: !maintenanceMode.isEnabled() && String(process.env.PAYSTACK_ENABLED || "false").toLowerCase() === "true" && !!process.env.PAYSTACK_SECRET_KEY && !paymentAccess.isFreePairing(),
+    maintenance: maintenanceMode.isEnabled(),
     freePairing: paymentAccess.isFreePairing(),
     publicKey: process.env.PAYSTACK_PUBLIC_KEY || "",
     provider: "Paystack",
@@ -47,7 +54,10 @@ router.get("/payment-config", (_req, res) => res.json({
     plans: Object.values(PLANS),
 }));
 
+router.get("/maintenance-status", (_req, res) => res.json(maintenanceMode.getStatus()));
+
 router.post("/paystack/charge", async (req, res) => {
+    if (rejectDuringMaintenance(res)) return;
     try {
         const charge = await paystackPayments.initializeCharge(req.body || {});
         return res.status(202).json(charge);
@@ -57,6 +67,7 @@ router.post("/paystack/charge", async (req, res) => {
 });
 
 router.post("/paystack/verify", async (req, res) => {
+    if (rejectDuringMaintenance(res)) return;
     try {
         const result = await paystackPayments.verifyAndGrant(req.body && req.body.reference);
         return res.json(result);
@@ -67,6 +78,7 @@ router.post("/paystack/verify", async (req, res) => {
 
 // Public Firebox pairing endpoints intentionally do not require an account.
 router.post("/token", async (req, res) => {
+    if (rejectDuringMaintenance(res)) return;
     try {
         const token = await tokenRegistry.create(req.body?.phone);
         return res.status(201).json({
@@ -82,6 +94,7 @@ router.post("/token", async (req, res) => {
 });
 
 router.post("/token/pair-code", async (req, res) => {
+    if (rejectDuringMaintenance(res)) return;
     try {
         const resolved = await tokenRegistry.resolve(req.body?.token);
         // Keep the same bot identity after a Railway restart. The token hash is
@@ -174,6 +187,7 @@ router.get("/qr", async (req, res) => {
 // ── Pairing code ──────────────────────────────────────────────────────────────
 
 router.post("/pair-code", async (req, res) => {
+    if (rejectDuringMaintenance(res)) return;
     const { phone } = req.body || {};
     if (!phone) return res.status(400).json({ error: "Phone number is required." });
 
@@ -332,6 +346,7 @@ router.get("/servers/:id/qr-image", async (req, res) => {
 });
 
 router.post("/servers/:id/pair-code", async (req, res) => {
+    if (rejectDuringMaintenance(res)) return;
     const server = await serverRegistry.get(req.params.id);
     if (server) await usageRegistry.touch({ userId: req.session.accountId, email: req.session.accountUser?.email, serverId: req.params.id });
     if (!server) return res.status(404).json({ error: "Server not found." });

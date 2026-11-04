@@ -4,6 +4,7 @@ const userRegistry = require("./userRegistry");
 const usageRegistry = require("./usageRegistry");
 const tokenRegistry = require("./tokenRegistry");
 const paymentAccess = require("./paymentAccess");
+const maintenanceMode = require("./maintenanceMode");
 const { requireAdmin } = require("./adminAuth");
 const router = express.Router();
 router.use(express.json(), requireAdmin);
@@ -49,6 +50,12 @@ router.get("/payment-mode", (_req, res) => res.json(paymentAccess.getStatus()));
 router.post("/payment-mode", (req, res) => {
     const enabled = req.body?.freePairing === true;
     return res.json({ ok: true, ...paymentAccess.setManualFreeMode(enabled) });
+});
+
+router.get("/maintenance-mode", (_req, res) => res.json(maintenanceMode.getStatus()));
+
+router.post("/maintenance-mode", (req, res) => {
+    return res.json({ ok: true, ...maintenanceMode.setEnabled(req.body?.maintenance === true) });
 });
 
 router.delete("/tokens", async (req, res) => {

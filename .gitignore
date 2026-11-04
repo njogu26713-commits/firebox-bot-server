@@ -35,6 +35,7 @@ desktop.ini
 database/message_cache.json
 database/firebox_tokens.json
 database/payment_access.json
+database/maintenance_mode.json
 database/*.db
 database/storage.json
 *.db
