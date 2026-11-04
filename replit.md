@@ -7,9 +7,10 @@ The existing Node.js 20 / Express backend is unchanged in structure. Dependencie
 are managed with npm and the existing lockfile. Replit also supplies ffmpeg,
 ImageMagick, WebP tools, and yt-dlp for media commands.
 
-Open `/health` in Preview to check that the server is listening. The root `/`
-has no page: this repository intentionally contains only the backend. Use the
-separately hosted frontend to access the dashboard and pair WhatsApp.
+Open `/` or `/health` to check that the server is listening. The root returns a
+small status response for Replit's deployment health check; this repository
+intentionally contains no frontend. Use the separately hosted frontend to
+access the dashboard and pair WhatsApp.
 
 ## Configuration
 
@@ -36,7 +37,11 @@ pairing requires the separate frontend and a real WhatsApp account.
 - `GET /health` checks HTTP availability only, not database readiness.
 - `GET /api/auth/me` returns the current account, or `{"user":null}`.
 
-This setup runs in the workspace; it does not publish the backend. Before
-production use, configure MongoDB, frontend origins, and admin access. The
-existing Express session store is in memory and should be replaced with a
+The deployment target is configured as an always-running VM so the WhatsApp
+connection is not hosted on a scale-to-zero service. The setting applies on the
+next publish. After publishing, check the deployment logs for a WhatsApp
+connection; if the saved session was rejected or cleared, pair WhatsApp again
+from the separate frontend.
+
+The existing Express session store is in memory and should be replaced with a
 persistent store before relying on logins across server restarts or replicas.

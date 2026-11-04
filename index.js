@@ -127,7 +127,12 @@ app.use("/api/firebox-database/v1", createDatabaseApiRouter());
 app.use("/api/firebox/database", createDatabaseApiRouter());
 app.use("/api/admin/firebox-database", require("./saas/fireboxDatabaseApi").createAdminRouter(requireAdmin));
 
-app.get("/health", (req, res) => res.send("🤖 Firebox Bot SaaS is Online!"));
+app.get("/", (_req, res) => res.status(200).json({
+    service: "Firebox Bot SaaS",
+    status: "online",
+    health: "/health",
+}));
+app.get("/health", (_req, res) => res.send("🤖 Firebox Bot SaaS is Online!"));
 
 // ── Listen ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {

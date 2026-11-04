@@ -1,0 +1,2 @@
+- [WhatsApp runtime](whatsapp-runtime.md) — Firebox's Baileys connection needs an always-on VM; autoscale had zero instances and repeated disconnects.
+- [Database-safe tests](database-safe-tests.md) — token-registry tests can write to MongoDB if its URI is inherited; keep test runs on the local file store.

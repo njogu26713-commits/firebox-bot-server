@@ -8,7 +8,7 @@
     "dev": "nodemon index.js",
     "pm2": "pm2 start ecosystem.config.js",
     "logs": "pm2 logs firebox-bot",
-    "test": "node --test test/*.test.js"
+    "test": "env -u MONGO_URL -u MONGO_PUBLIC_URL -u MONGODB_URI NODE_ENV=test node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
