@@ -7,7 +7,8 @@ const timezone = String(process.env.FIREBOX_FREE_WEEKEND_TIMEZONE || "Africa/Nai
 function readState() {
     try {
         const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
-        return { manualFreeMode: state.manualFreeMode === true };
+        if (state.manualMode === "free" || state.manualMode === "paid") return { manualMode: state.manualMode };
+        return { manualMode: state.manualFreeMode === true ? "free" : null };
     } catch {
         return { manualFreeMode: false };
     }
@@ -17,7 +18,7 @@ function writeState(state) {
     fs.mkdirSync(path.dirname(statePath), { recursive: true });
     const temporaryPath = `${statePath}.tmp`;
     fs.writeFileSync(temporaryPath, JSON.stringify({
-        manualFreeMode: state.manualFreeMode === true,
+        manualMode: state.manualMode,
         updatedAt: new Date().toISOString(),
     }, null, 2));
     fs.renameSync(temporaryPath, statePath);
@@ -31,10 +32,13 @@ function isWeekend(now = new Date()) {
 function getStatus(now = new Date()) {
     const state = readState();
     const weekendFree = isWeekend(now);
+    const manualFreeMode = state.manualMode === "free";
+    const manualPaidMode = state.manualMode === "paid";
     return {
-        manualFreeMode: state.manualFreeMode,
+        manualFreeMode,
+        manualPaidMode,
         weekendFree,
-        freePairing: state.manualFreeMode || weekendFree,
+        freePairing: manualFreeMode || (!manualPaidMode && weekendFree),
         timezone,
     };
 }
@@ -43,8 +47,7 @@ module.exports = {
     getStatus,
     isFreePairing: () => getStatus().freePairing,
     setManualFreeMode(enabled) {
-        const manualFreeMode = enabled === true;
-        writeState({ manualFreeMode });
+        writeState({ manualMode: enabled === true ? "free" : "paid" });
         return getStatus();
     },
 };

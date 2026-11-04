@@ -23,6 +23,8 @@ test("admin override enables and disables free pairing outside the weekend", () 
     assert.equal(paymentAccess.getStatus(new Date("2026-11-09T10:00:00Z")).freePairing, true);
     paymentAccess.setManualFreeMode(false);
     assert.equal(paymentAccess.getStatus(new Date("2026-11-09T10:00:00Z")).freePairing, false);
+    assert.equal(paymentAccess.getStatus(new Date("2026-11-07T10:00:00Z")).freePairing, false);
+    assert.equal(paymentAccess.getStatus(new Date("2026-11-07T10:00:00Z")).manualPaidMode, true);
     removeState();
 });
 
